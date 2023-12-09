@@ -1,0 +1,5 @@
+module github.com/jdodson3106/nexus
+
+go 1.19
+
+require github.com/julienschmidt/httprouter v1.3.0
