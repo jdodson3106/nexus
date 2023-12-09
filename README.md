@@ -1,2 +1,2 @@
-# nexus
-an opinionated golang web framework 
+# Nexus
+An opinionated golang web framework 
