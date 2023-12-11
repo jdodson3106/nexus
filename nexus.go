@@ -3,7 +3,6 @@ package nexus
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -114,7 +113,7 @@ func (n *Nexus) Run() error {
     }
 
 	printAppString()
-	log.Printf("Nexus server started at http://localhost%s\n", n.port)
+	fmt.Printf("Nexus server started at http://localhost%s\n", n.port)
 	return http.ListenAndServe(n.port, n.router)
 }
 
