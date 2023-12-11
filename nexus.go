@@ -24,9 +24,9 @@ type TemplateEngine struct {
 }
 
 type Context struct {
-	request  *http.Request
-	response http.ResponseWriter
-	params   httprouter.Params
+	Request  *http.Request
+	Response http.ResponseWriter
+	Params   httprouter.Params
 	ctx      context.Context
 }
 
@@ -36,9 +36,9 @@ func (ctx *Context) Render(path string, model map[string]interface{}) error {
 
 func NewContext(w http.ResponseWriter, r *http.Request, params httprouter.Params) *Context {
 	return &Context{
-		request:  r,
-		response: w,
-		params:   params,
+		Request:  r,
+		Response: w,
+		Params:   params,
 		ctx:      context.TODO(), // not quite sure what to do here yet...thinking context.Background() but needs more investigation
 	}
 }
@@ -78,6 +78,16 @@ func New(c NexusConfig) (*Nexus, error) {
 }
 
 func (n *Nexus) Run() error {
+    err := installTempl()
+    if err != nil {
+        panic(err)
+    }
+
+    err = compileTemplates()
+    if err != nil {
+        panic(err)
+    }
+
 	printAppString()
 	log.Printf("Nexus server started at http://localhost%s\n", n.port)
 	return http.ListenAndServe(n.port, n.router)
