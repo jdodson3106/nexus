@@ -17,6 +17,17 @@ func printAppString() {
                           |__|/ \|__|               \|_________|
 	`
 	fmt.Printf("\033[1;32m%s\033[0m", name)
+    fmt.Println()
+}
+
+func tidy() error {
+    err := exec.Command("go", "mod", "tidy").Run()
+    if err != nil {
+        fmt.Printf("Error runing mod tidy :: %s\n", err)
+        return err
+    }
+
+    return nil
 }
 
 func installTempl() error {
@@ -55,14 +66,8 @@ func installTempl() error {
             fmt.Printf("Error installing %s :: %s\n", templLib, err)
             return err
         }
-
-        err = exec.Command("go", "mod", "tidy").Run()
-        if err != nil {
-            fmt.Printf("Error runing mod tidy :: %s\n", err)
-            return err
-        }
     }
-    
+    tidy()
     return nil
 }
 

@@ -2,11 +2,16 @@ package nexus
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/a-h/templ"
 	"github.com/julienschmidt/httprouter"
 )
+
+var viewsPath string
 
 const (
 	GET     = "GET"
@@ -15,6 +20,8 @@ const (
 	PUT     = "PUT"
 	PATCH   = "PATCH"
 	OPTIONS = "OPTIONS"
+
+    DEF_APP_NAME = "app"
 )
 
 type Handler func(ctx *Context) error
@@ -30,8 +37,10 @@ type Context struct {
 	ctx      context.Context
 }
 
-func (ctx *Context) Render(path string, model map[string]interface{}) error {
-    return nil
+func (ctx *Context) Render(component templ.Component) error {
+    // todo: figure out how to do this with reflection so the user can just 
+    //       pass in the template name via string
+    return component.Render(ctx.ctx, ctx.Response)
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request, params httprouter.Params) *Context {
@@ -49,12 +58,14 @@ type NexusConfig struct {
 	// if the user provides flags to the cli tool
 	Port   string
 	Engine TemplateEngine
+    ViewPath string
 }
 
 type Nexus struct {
 	// Needed to build the engine: router, db, templating,
 	router *httprouter.Router
 	port   string
+    appName string
 
 	// todo: implement db abstraction
 	// todo: decide on default templateing (tmpl with htmx most likely)
@@ -62,15 +73,24 @@ type Nexus struct {
 
 // the default setup
 func NewDefault() (*Nexus, error) {
+    dir, err := os.Getwd()
+    if err != nil {
+        dir = fmt.Sprintf("./%s", DEF_APP_NAME)
+    }
+    dir += "/views"
+    viewsPath = dir
+
 	return &Nexus{
 		router: httprouter.New(),
 		port:   ":3000",
+        appName: DEF_APP_NAME, 
 	}, nil
 }
 
 // the custom setup given cli flags
 func New(c NexusConfig) (*Nexus, error) {
 	// WIP
+    viewsPath = c.ViewPath
 	return &Nexus{
 		router: httprouter.New(),
 		port:   c.Port,
@@ -78,7 +98,12 @@ func New(c NexusConfig) (*Nexus, error) {
 }
 
 func (n *Nexus) Run() error {
-    err := installTempl()
+    err := tidy()
+    if err != nil {
+        panic(err)
+    }
+
+    err = installTempl()
     if err != nil {
         panic(err)
     }
