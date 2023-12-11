@@ -30,6 +30,10 @@ type Context struct {
 	ctx      context.Context
 }
 
+func (ctx *Context) Render(path string, model map[string]interface{}) error {
+    return nil
+}
+
 func NewContext(w http.ResponseWriter, r *http.Request, params httprouter.Params) *Context {
 	return &Context{
 		request:  r,
