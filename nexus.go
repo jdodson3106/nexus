@@ -8,6 +8,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/julienschmidt/httprouter"
+    log "github.com/jdodson3106/nexus/log"
 )
 
 var viewsPath string
@@ -113,7 +114,7 @@ func (n *Nexus) Run() error {
     }
 
 	printAppString()
-	fmt.Printf("Nexus server started at http://localhost%s\n", n.port)
+	log.Info(fmt.Sprintf("Nexus server started at http://localhost%s", n.port))
 	return http.ListenAndServe(n.port, n.router)
 }
 

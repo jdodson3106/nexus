@@ -3,6 +3,8 @@ package nexus
 import (
 	"fmt"
 	"os/exec"
+
+	"github.com/jdodson3106/nexus/log"
 )
 
 func printAppString() {
@@ -23,7 +25,7 @@ func printAppString() {
 func tidy() error {
     err := exec.Command("go", "mod", "tidy").Run()
     if err != nil {
-        fmt.Printf("Error runing mod tidy :: %s\n", err)
+        log.Error(fmt.Sprintf("Error runing mod tidy :: %s", err))
         return err
     }
 
@@ -37,7 +39,7 @@ func installTempl() error {
         panic(err)
     }
 
-    fmt.Printf("Running with Go version %s\n", out)
+    log.Trace(fmt.Sprintf("Running with Go version %s", out))
     out, err = exec.Command("go", "list", "-deps").Output()
     depBuffer := []byte{}
     deps := []string {}
@@ -54,16 +56,16 @@ func installTempl() error {
     for _, dep := range deps {
         if dep == templLib {
             hasTempl = true
-            fmt.Printf("%s already installed.\n", dep)
+            log.Trace(fmt.Sprintf("%s already installed.", dep))
             break
         }
     }
 
     if !hasTempl {
-        fmt.Printf("installing %s\n", templLib)
+        log.Trace(fmt.Sprintf("installing %s", templLib))
         err = exec.Command("go", "install", "github.com/a-h/templ/cmd/templ@latest").Run()
         if err != nil {
-            fmt.Printf("Error installing %s :: %s\n", templLib, err)
+            log.Error(fmt.Sprintf("Error installing %s :: %s", templLib, err))
             return err
         }
     }
