@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/a-h/templ"
+	log "github.com/jdodson3106/nexus/log"
 	"github.com/julienschmidt/httprouter"
-    log "github.com/jdodson3106/nexus/log"
 )
 
 var viewsPath string
@@ -21,7 +21,7 @@ const (
 	PATCH   = "PATCH"
 	OPTIONS = "OPTIONS"
 
-    DEF_APP_NAME = "app"
+	DEF_APP_NAME = "app"
 )
 
 type Handler func(ctx *Context) error
@@ -38,9 +38,9 @@ type Context struct {
 }
 
 func (ctx *Context) Render(component templ.Component) error {
-    // todo: figure out how to do this with reflection so the user can just 
-    //       pass in the template name via string
-    return component.Render(ctx.ctx, ctx.Response)
+	// todo: figure out how to do this with reflection so the user can just
+	//       pass in the template name via string
+	return component.Render(ctx.ctx, ctx.Response)
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request, params httprouter.Params) *Context {
@@ -56,16 +56,16 @@ type NexusConfig struct {
 	// todo define all custom config in here
 	// this will be generated during the scaffolding proces
 	// if the user provides flags to the cli tool
-	Port   string
-	Engine TemplateEngine
-    ViewPath string
+	Port     string
+	Engine   TemplateEngine
+	ViewPath string
 }
 
 type Nexus struct {
 	// Needed to build the engine: router, db, templating,
-	router *httprouter.Router
-	port   string
-    appName string
+	router  *httprouter.Router
+	port    string
+	appName string
 
 	// todo: implement db abstraction
 	// todo: decide on default templateing (tmpl with htmx most likely)
@@ -73,24 +73,24 @@ type Nexus struct {
 
 // the default setup
 func NewDefault() (*Nexus, error) {
-    dir, err := os.Getwd()
-    if err != nil {
-        dir = fmt.Sprintf("./%s", DEF_APP_NAME)
-    }
-    dir += "/views"
-    viewsPath = dir
+	dir, err := os.Getwd()
+	if err != nil {
+		dir = fmt.Sprintf("./%s", DEF_APP_NAME)
+	}
+	dir += "/views"
+	viewsPath = dir
 
 	return &Nexus{
-		router: httprouter.New(),
-		port:   ":3000",
-        appName: DEF_APP_NAME, 
+		router:  httprouter.New(),
+		port:    ":3000",
+		appName: DEF_APP_NAME,
 	}, nil
 }
 
 // the custom setup given cli flags
 func New(c NexusConfig) (*Nexus, error) {
 	// WIP
-    viewsPath = c.ViewPath
+	viewsPath = c.ViewPath
 	return &Nexus{
 		router: httprouter.New(),
 		port:   c.Port,
@@ -98,20 +98,20 @@ func New(c NexusConfig) (*Nexus, error) {
 }
 
 func (n *Nexus) Run() error {
-    err := tidy()
-    if err != nil {
-        panic(err)
-    }
+	err := tidy()
+	if err != nil {
+		panic(err)
+	}
 
-    err = installTempl()
-    if err != nil {
-        panic(err)
-    }
+	err = installTempl()
+	if err != nil {
+		panic(err)
+	}
 
-    err = compileTemplates()
-    if err != nil {
-        panic(err)
-    }
+	err = compileTemplates()
+	if err != nil {
+		panic(err)
+	}
 
 	printAppString()
 	log.Info(fmt.Sprintf("Nexus server started at http://localhost%s", n.port))

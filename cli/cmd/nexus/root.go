@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const helpText =`
+const helpText = `
 +--------------------------------------------------------------------------+
 |       ________    _______       ___    ___  ___  ___   ________          |
 |      |\   ___  \ |\  ___ \     |\  \  /  /||\  \|\  \ |\   ____\         |
@@ -19,28 +19,21 @@ const helpText =`
 |                                                                          |
 |                     An opinionated Web Framework in Go                   |
 +--------------------------------------------------------------------------+
-                
-
-usage: nexus <command> [<args>...]
-
-commands:
-    new         generates a new application
-    compile     executes compilation on your .templ files
 `
 
 var rootCmd = &cobra.Command{
-    Use: "nexus",
-    Short: "nexus - an opinionated web framework written in Go",
-    Long: "long...",
-    Run: func(cmd *cobra.Command, args []string) {
-        if len(args) == 1 {
-            fmt.Printf(helpText)
-        }
-    },
+	Use:   "nexus",
+	Short: "nexus - an opinionated web framework written in Go",
+	Long:  helpText,
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 1 {
+			fmt.Printf(helpText)
+		}
+	},
 }
 
 func Execute() {
-    if err := rootCmd.Execute(); err != nil {
-        panic(err)
-    }
+	if err := rootCmd.Execute(); err != nil {
+		panic(err)
+	}
 }
