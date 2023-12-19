@@ -20,12 +20,11 @@ var (
 )
 
 var (
-	INFO      = fmt.Sprintf(Teal, "INFO ")
-	TRACE     = fmt.Sprintf(Magenta, "TRACE")
-	DEBUG     = fmt.Sprintf(Green, "DEBUG")
-	ERROR     = fmt.Sprintf(Red, "ERROR")
-	WARN      = fmt.Sprintf(Yellow, "WARN ")
-	formatter = "date time \tlevel\tmethod(line number) - message"
+	INFO  = fmt.Sprintf(Teal, "INFO ")
+	TRACE = fmt.Sprintf(Magenta, "TRACE")
+	DEBUG = fmt.Sprintf(Green, "DEBUG")
+	ERROR = fmt.Sprintf(Red, "ERROR")
+	WARN  = fmt.Sprintf(Yellow, "WARN ")
 )
 
 func showSimpleLog(level, out string) {
@@ -70,6 +69,15 @@ func Debug(out string) {
 		showSimpleLog(DEBUG, out)
 	}
 
+}
+
+func Warn(out string) {
+	_, file, line, ok := runtime.Caller(1)
+	if ok {
+		showLogStatement(WARN, out, file, line)
+	} else {
+		showSimpleLog(WARN, out)
+	}
 }
 
 func Error(out string) {

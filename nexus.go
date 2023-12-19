@@ -26,8 +26,14 @@ const (
 
 type Handler func(ctx *Context) error
 
+type RenderArgs struct {
+    Args map[string]interface{}
+    RenderFunc string
+}
+
 type TemplateEngine struct {
-	// todo: determine what is necessary to build this
+    // stub for the eventual multiple templates support
+    
 }
 
 type Context struct {
@@ -37,9 +43,17 @@ type Context struct {
 	ctx      context.Context
 }
 
-func (ctx *Context) Render(component templ.Component) error {
-	// todo: figure out how to do this with reflection so the user can just
-	//       pass in the template name via string
+func (ctx *Context) Render(name string, args *RenderArgs) error {
+    path := fmt.Sprintf("%s/%s_templ.go", viewsPath, name)
+    comp, err := reflectiveRender(name, path, args)
+    if err != nil {
+        return err
+    }
+    return comp.Render(ctx.ctx, ctx.Response)
+}
+
+
+func (ctx *Context) RenderComponent(component templ.Component) error {
 	return component.Render(ctx.ctx, ctx.Response)
 }
 
@@ -48,14 +62,14 @@ func NewContext(w http.ResponseWriter, r *http.Request, params httprouter.Params
 		Request:  r,
 		Response: w,
 		Params:   params,
-		ctx:      context.TODO(), // not quite sure what to do here yet...thinking context.Background() but needs more investigation
+		ctx:      context.Background(),
 	}
 }
 
+// NexusConfig: Defines all custom config in here
+// this will be generated during the scaffolding proces
+// if the user provides flags to the cli tool
 type NexusConfig struct {
-	// todo define all custom config in here
-	// this will be generated during the scaffolding proces
-	// if the user provides flags to the cli tool
 	Port     string
 	Engine   TemplateEngine
 	ViewPath string
@@ -68,7 +82,6 @@ type Nexus struct {
 	appName string
 
 	// todo: implement db abstraction
-	// todo: decide on default templateing (tmpl with htmx most likely)
 }
 
 // the default setup
