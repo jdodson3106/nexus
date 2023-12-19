@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"plugin"
 	"reflect"
@@ -78,9 +79,13 @@ func installTempl() error {
 }
 
 func compileTemplates() error {
+    // get all *_templ.go files, copy to a local tmp/main.go, then compile to plugin
 	return exec.Command("templ", "generate").Run()
 }
 
+func getPathVar() string {
+    return fmt.Sprintf("/%s", os.Getenv("NEXUS_APP_EXECUTION_PATH"))
+}
 
 // reflectiveRender dynamically searches and executes the compiled
 // <arg: name>_templ.go file (e.g. todoShow_templ.go). 
@@ -90,6 +95,7 @@ func compileTemplates() error {
 // TemplateNameView() templ.Component {...} defintion convention (e.g. TodoShowView()...)
 func reflectiveRender(name, path string, args *RenderArgs) (templ.Component, error) {
     if args.RenderFunc == "" {
+        // TODO: Define func name using name & path convention
         args.RenderFunc = ""
     }
 
