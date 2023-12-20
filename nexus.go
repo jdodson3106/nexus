@@ -90,9 +90,7 @@ func NewDefault() (*Nexus, error) {
 	if err != nil {
 		dir = fmt.Sprintf("./%s", DEF_APP_NAME)
 	}
-    fmt.Printf("\"Here\": %v\n", "Here")
     p := getPathVar()
-    fmt.Printf("p: %v\n", p)
     dir += p
 	dir += "/views"
 	viewsPath = dir
