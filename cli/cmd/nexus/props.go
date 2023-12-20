@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 
@@ -31,40 +32,82 @@ func SetProperty(key, val, propFilePath string) bool {
 // If the file creation succeeds, it will write the app name in and return 
 // the property file path.
 func GenerateNewPropsFile(appName string, overwriteExisting bool) (string, error) {
+    // get the executable with the entire path
     loc, err := os.Executable()    
+
+    // split off the actual nexus executable from the path to get the base path
+    exBase, _ := filepath.Split(loc) 
     if err != nil {
-        return "", fmt.Errorf("Error loading binary execution location :: %v", err)
-    }
-    
-    // _, err = os.Open(fmt.Sprintf("%s/%s.properties", loc, appName))
-    // if err == nil && !overwriteExisting {
-    //     return "", fmt.Errorf("App \"%s\" already exists.", appName)
-    // }
-    _, err = os.Stat(loc) 
-    if err != nil {
-        return "", err
+        return "", fmt.Errorf("error loading binary execution location :: %v", err)
     }
 
-    err = os.Mkdir("./props", 0755)
+    // setupt to check and create a props directory
+    propsDir := filepath.Join(exBase, "props")
+
+    created, err := createNewDir(propsDir)
     if err != nil {
-        fmt.Println("Failed making dir")
-        fmt.Println(err.Error())
+        return "", fmt.Errorf("error creating properties director at %s :: %v", propsDir, err)
     }
 
-    fileName := fmt.Sprintf("~%s/%s.%s", loc, appName, PROP_FILE_EXTENSION) 
-    f, err := os.Create(fileName)
+    if created {
+        fileName := fmt.Sprintf("%s/%s.%s", propsDir, appName, PROP_FILE_EXTENSION)
+        exists := propsFileExists(fileName)
+        if !exists || (exists && overwriteExisting) {
+            propsFileCreated, err := createNewPropsFile(fileName, appName)
+            if err != nil {
+                return "", err
+            }
 
-    if err != nil {
-        fmt.Println(err.Error())
+            if propsFileCreated {
+                return propsDir, nil
+            } else {
+                return "", fmt.Errorf("unexpected error checking stat for properties file at %s", fileName)
+            }
+        } 
+
+        // the file already exists (a la an app already exists with that name) so return the err
         return "", AppExistsError(appName)
     }
+    
+    // shouldn't make it here... but nevertheless, we return a generic err 
+    return "", fmt.Errorf("unexpected error creating properties director at %s", propsDir)
+}
+
+func propsFileExists(path string) bool {
+    PrintInfo(fmt.Sprintln("checking if property file exist..."))
+    if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+        return false
+    }
+    return true
+}
+
+func createNewPropsFile(fileName, appName string) (bool, error) {
+    f, err := os.Create(fileName)
 
     defer f.Close()
 
+    // write the app name as the first property in the file
     _, err = f.Write([]byte(fmt.Sprintf("%s=%s\n", APP_NAME, appName)))
     if err != nil {
-        return "", err
+        return false, err
     }
-    
-    return fileName, nil
+    PrintCreate(fmt.Sprintf("Created property file for app %s\n", appName))
+    return true, nil
+}
+
+func createNewDir(path string) (bool, error) {
+    PrintInfo(fmt.Sprintln("checking for nexus directory..."))
+    _, err := os.Stat(path) 
+    if err != nil {
+        if os.IsNotExist(err) {
+            if err = os.Mkdir(path, os.ModePerm); err != nil {
+                return true, err
+            } else {
+                PrintCreate(fmt.Sprintf("created property directory at %s\n", path))
+            }
+        } else {
+            return true, err
+        }
+    }
+    return true, nil
 }
