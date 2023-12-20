@@ -9,26 +9,15 @@ import (
 )
 
 func ScaffoldNewApplication(appName string) {
-    absolutePath := getExecutablePath()
+    absolutePath := GetExecutablePath()
     buildAppsDir(absolutePath)
     appDir := createNewAppDir(appName)
     _, err := GenerateNewPropsFile(appDir, appName)
     if err != nil {
         panic(err)
     }
-     
-}
-
-func getExecutablePath() string {
-    // get the executable with the entire path
-    loc, err := os.Executable()    
-    if err != nil {
-        panic(fmt.Errorf("error loading binary execution location :: %v", err))
-    }
-
-    // split off the actual nexus executable from the path to get the base path
-    exBase, _ := filepath.Split(loc) 
-    return exBase
+    
+    scaffoldApplicationStructure(appName)
 }
 
 func buildAppsDir(absPath string) {
@@ -49,7 +38,7 @@ func buildAppsDir(absPath string) {
 }
 
 func createNewAppDir(appName string) string {
-    appsPath := filepath.Join(getExecutablePath(), "apps")
+    appsPath := filepath.Join(GetExecutablePath(), "apps")
     cleanedAppName := ToSnakeLower(appName)
     appDir := filepath.Join(appsPath, cleanedAppName)
     _, err := os.Stat(appDir)
@@ -96,4 +85,25 @@ func handleAppExists(appName string) bool {
         return true
     }
     return false
+}
+
+func scaffoldApplicationStructure(appName string) {
+    wd, err := os.Getwd()
+    if err != nil {
+        panic(err)
+    }
+    folderName := ToSnakeLower(appName)
+    newDir := filepath.Join(wd, folderName)
+    
+    _, err = os.Stat(newDir)
+    if err != nil && os.IsNotExist(err) {
+        if err = os.Mkdir(newDir, os.ModePerm); err != nil {
+            panic(err)
+        }
+        PrintCreate(fmt.Sprintf("created new application directory %s\n", newDir))
+        return
+    }
+
+    PrintWarningInfo(fmt.Sprintf("A directory already exists at %s\n", newDir))
+    os.Exit(1)
 }

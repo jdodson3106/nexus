@@ -12,10 +12,6 @@ const (
     APP_NAME = "APP_NAME"
 )
 
-func AppExistsError(appName string) error {
-    return errors.New(fmt.Sprintf("a nexus application called \"%s\" already exists.", appName))
-}
-
 
 func ReadProperty(propName, propFilePath string) (string, error) {
     return "", nil
@@ -24,7 +20,6 @@ func ReadProperty(propName, propFilePath string) (string, error) {
 func SetProperty(key, val, propFilePath string) bool {
     return true
 }
-
 
 // GenerateNewPropsFile checks if a property file exists for the given
 // appName. If it does, && !overwrite then it will throw error
