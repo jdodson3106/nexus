@@ -18,6 +18,18 @@ func ReadProperty(propName, propFilePath string) (string, error) {
 }
 
 func SetProperty(key, val, propFilePath string) bool {
+    toWrite := fmt.Sprintf("%s=%s\n", key, val)
+    f, err := os.OpenFile(propFilePath, os.O_WRONLY|os.O_APPEND, os.ModeAppend.Perm())  
+    if err != nil {
+        panic(err)
+    }
+    defer f.Close()
+
+    _, err = f.Write([]byte(toWrite))
+    if err != nil {
+        panic(err)
+    }
+
     return true
 }
 

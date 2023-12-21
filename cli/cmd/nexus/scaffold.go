@@ -8,16 +8,31 @@ import (
 	"path/filepath"
 )
 
+type NewDirectory struct {
+    Root string 
+    Views string 
+    Models string
+    Handlers  string 
+    Configuration string
+}
+
 func ScaffoldNewApplication(appName string) {
     absolutePath := GetExecutablePath()
     buildAppsDir(absolutePath)
     appDir := createNewAppDir(appName)
-    _, err := GenerateNewPropsFile(appDir, appName)
+    propsFilePath, err := GenerateNewPropsFile(appDir, appName)
     if err != nil {
         panic(err)
     }
     
-    scaffoldApplicationStructure(appName)
+    newDirectoryStructure := scaffoldApplicationStructure(appName)
+    SetProperty("APP_ROOT", newDirectoryStructure.Root, propsFilePath)
+    SetProperty("VIEWS_ROOT", newDirectoryStructure.Views, propsFilePath)
+    SetProperty("HANDLERS_ROOT", newDirectoryStructure.Handlers, propsFilePath)
+    SetProperty("MODELS_ROOT", newDirectoryStructure.Models, propsFilePath)
+    SetProperty("CONF_ROOT", newDirectoryStructure.Configuration, propsFilePath)
+
+    generateBaseFiles(newDirectoryStructure)
 }
 
 func buildAppsDir(absPath string) {
@@ -87,7 +102,7 @@ func handleAppExists(appName string) bool {
     return false
 }
 
-func scaffoldApplicationStructure(appName string) {
+func scaffoldApplicationStructure(appName string) NewDirectory {
     wd, err := os.Getwd()
     if err != nil {
         panic(err)
@@ -100,10 +115,39 @@ func scaffoldApplicationStructure(appName string) {
         if err = os.Mkdir(newDir, os.ModePerm); err != nil {
             panic(err)
         }
-        PrintCreate(fmt.Sprintf("created new application directory %s\n", newDir))
-        return
+    } else {
+        PrintWarningInfo(fmt.Sprintf("A directory already exists at %s\n", newDir))
+        os.Exit(1)
     }
 
-    PrintWarningInfo(fmt.Sprintf("A directory already exists at %s\n", newDir))
-    os.Exit(1)
+    newDirStruct := NewDirectory {
+        Root: newDir,
+        Views: filepath.Join(newDir, "views"),
+        Models: filepath.Join(newDir, "models"),
+        Handlers: filepath.Join(newDir, "handlers"),
+        Configuration: filepath.Join(newDir, "conf"),
+    }
+
+    if err = os.Mkdir(newDirStruct.Views, os.ModePerm); err != nil {
+        panic(err)
+    }  
+
+    if err = os.Mkdir(newDirStruct.Models, os.ModePerm); err != nil {
+        panic(err)
+    }  
+
+    if err = os.Mkdir(newDirStruct.Handlers, os.ModePerm); err != nil {
+        panic(err)
+    }  
+
+    if err = os.Mkdir(newDirStruct.Configuration, os.ModePerm); err != nil {
+        panic(err)
+    }  
+    
+    PrintCreate(fmt.Sprintf("created new application directory %s\n", newDir))
+    return newDirStruct
+}
+
+func generateBaseFiles(directory NewDirectory) {
+    PrintInfo("generating core files...")
 }
