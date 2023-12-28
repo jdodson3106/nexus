@@ -16,7 +16,24 @@ type NewDirectory struct {
 	Configuration string
 }
 
+type ModelCol struct {
+	Title    string
+	DataType string
+}
+
+type Model struct {
+	Name string
+	Cols []ModelCol
+}
+
+type App struct {
+	Name   string
+	Models []Model
+}
+
 func ScaffoldNewApplication(appName string) {
+	app := App{Name: appName}
+
 	absolutePath := GetExecutablePath()
 	buildAppsDir(absolutePath)
 	appDir := createNewAppDir(appName)
@@ -32,7 +49,7 @@ func ScaffoldNewApplication(appName string) {
 	SetProperty("MODELS_ROOT", newDirectoryStructure.Models, propsFilePath)
 	SetProperty("CONF_ROOT", newDirectoryStructure.Configuration, propsFilePath)
 
-	generateBaseFiles(newDirectoryStructure)
+	generateBaseFiles(newDirectoryStructure, &app)
 }
 
 func buildAppsDir(absPath string) {
@@ -148,6 +165,66 @@ func scaffoldApplicationStructure(appName string) NewDirectory {
 	return newDirStruct
 }
 
-func generateBaseFiles(directory NewDirectory) {
-	PrintInfo("generating core files...")
+func generateBaseFiles(directory NewDirectory, app *App) {
+	PrintInfo("generating initial application files...\n")
+
+	// 1: Setup Models
+	setupModels(app)
+	//		- Use Defaults? (SQLite)
+	// 2: Create initial views and routes
+	// 3: Create handlers to work between views and models
+
+}
+
+func setupModels(app *App) {
+	useDefault := bufio.NewReader(os.Stdin)
+
+	PrintWarning("Setup database model? (y/n): ")
+	ans, err := useDefault.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+
+	if strings.Trim(strings.ToLower(ans), "\n") == "y" {
+		PrintWarning("Initial model name(s): ")
+		modelsReader := bufio.NewReader(os.Stdin)
+		modelsAns, err := modelsReader.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+
+		modelsAns = strings.Trim(modelsAns, "\n")
+		userModels := strings.Split(modelsAns, ",")
+		models := make([]Model, len(userModels))
+
+		for i, model := range userModels {
+			m := Model{Name: strings.TrimSpace(model)}
+
+			// get and parse the column attributes
+			PrintWarningInfo(fmt.Sprintf("columns for %s: \n", model))
+			usrCols, err := modelsReader.ReadString('\n')
+			if err != nil {
+				// todo: handle this error
+				panic(err)
+			}
+
+			cols := strings.Split(usrCols, ",")
+			for _, col := range cols {
+				data := strings.Split(col, ":")
+				if len(data) != 2 {
+					PrintWarning(fmt.Sprintf("Invalid Entry: %s\n", col))
+					break
+				}
+				name, attrs := data[0], data[1]
+				m.Cols = append(m.Cols, ModelCol{Title: name, DataType: attrs})
+			}
+
+			// add the created model to the model list for the app
+			models[i] = m
+		}
+
+		// add the models to the app object
+		app.Models = models
+	}
+
 }
