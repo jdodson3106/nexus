@@ -27,8 +27,9 @@ type Model struct {
 }
 
 type App struct {
-	Name   string
-	Models []Model
+	Name      string
+	Directory NewDirectory
+	Models    []Model
 }
 
 func ScaffoldNewApplication(appName string) {
@@ -43,6 +44,7 @@ func ScaffoldNewApplication(appName string) {
 	}
 
 	newDirectoryStructure := scaffoldApplicationStructure(appName)
+	app.Directory = newDirectoryStructure
 	SetProperty("APP_ROOT", newDirectoryStructure.Root, propsFilePath)
 	SetProperty("VIEWS_ROOT", newDirectoryStructure.Views, propsFilePath)
 	SetProperty("HANDLERS_ROOT", newDirectoryStructure.Handlers, propsFilePath)
@@ -165,7 +167,7 @@ func scaffoldApplicationStructure(appName string) NewDirectory {
 	return newDirStruct
 }
 
-func generateBaseFiles(directory NewDirectory, app *App) {
+func generateBaseFiles(app *App) {
 	PrintInfo("generating initial application files...\n")
 
 	// 1: Setup Models
@@ -225,6 +227,12 @@ func setupModels(app *App) {
 
 		// add the models to the app object
 		app.Models = models
+
+		// geneate the db model files from templates
+		if genErr := GenerateFromTemplate(DB_MODEL, app); genErr != nil {
+			// todo: handle this error mo' betta
+			panic(genErr)
+		}
 	}
 
 }
