@@ -24,16 +24,17 @@ const (
 	DEF_APP_NAME = "app"
 )
 
+// Handler the stub of a handler method that should be passed in any Nexus route
 type Handler func(ctx *Context) error
 
 type RenderArgs struct {
-    Args map[string]interface{}
-    RenderFunc string
+	Args       map[string]interface{}
+	RenderFunc string
 }
 
 type TemplateEngine struct {
-    // stub for the eventual multiple templates support
-    
+	// stub for the eventual multiple templates support
+
 }
 
 type Context struct {
@@ -44,14 +45,13 @@ type Context struct {
 }
 
 func (ctx *Context) Render(name string, args *RenderArgs) error {
-    path := fmt.Sprintf("%s/%s_templ.go", viewsPath, name)
-    comp, err := reflectiveRender(name, path, args)
-    if err != nil {
-        return err
-    }
-    return comp.Render(ctx.ctx, ctx.Response)
+	path := fmt.Sprintf("%s/%s_templ.go", viewsPath, name)
+	comp, err := reflectiveRender(name, path, args)
+	if err != nil {
+		return err
+	}
+	return comp.Render(ctx.ctx, ctx.Response)
 }
-
 
 func (ctx *Context) RenderComponent(component templ.Component) error {
 	return component.Render(ctx.ctx, ctx.Response)
@@ -90,8 +90,8 @@ func NewDefault() (*Nexus, error) {
 	if err != nil {
 		dir = fmt.Sprintf("./%s", DEF_APP_NAME)
 	}
-    p := getPathVar()
-    dir += p
+	p := getPathVar()
+	dir += p
 	dir += "/views"
 	viewsPath = dir
 
@@ -111,7 +111,6 @@ func New(c NexusConfig) (*Nexus, error) {
 		port:   c.Port,
 	}, nil
 }
-
 func (n *Nexus) Run() error {
 	err := tidy()
 	if err != nil {

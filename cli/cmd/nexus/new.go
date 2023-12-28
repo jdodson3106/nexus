@@ -8,11 +8,11 @@ var newCmd = &cobra.Command{
 	Use:   "new",
 	Short: "Creates a new Nexus Application",
 	Run: func(cmd *cobra.Command, args []string) {
-        var appName string 
-        if validateArgs(args) {
-            appName = args[0]
-            startAppCreate(appName)
-        }
+		var appName string
+		if validateArgs(args) {
+			appName = args[0]
+			startAppCreate(appName)
+		}
 	},
 }
 
@@ -21,19 +21,19 @@ func init() {
 }
 
 func validateArgs(args []string) bool {
-    if len(args) < 1 {
-        cobra.CompErrorln("Must provide a name for the application")
-        return false 
-    }
+	if len(args) < 1 {
+		cobra.CompErrorln("Must provide a name for the application")
+		return false
+	}
 
-    if len(args) > 1 {
-        cobra.CompErrorln("Too many arguments provided.")
-        return false
-    }
+	if len(args) > 1 {
+		cobra.CompErrorln("Too many arguments provided.")
+		return false
+	}
 
-    return true
+	return true
 }
 
-func startAppCreate (appName string) {
-    ScaffoldNewApplication(appName)
+func startAppCreate(appName string) {
+	ScaffoldNewApplication(appName)
 }

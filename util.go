@@ -13,8 +13,8 @@ import (
 )
 
 func printAppString() {
-	name := 
-`
+	name :=
+		`
 +--------------------------------------------------------------------------+
 |       ________    _______       ___    ___  ___  ___   ________          |
 |      |\   ___  \ |\  ___ \     |\  \  /  /||\  \|\  \ |\   ____\         |
@@ -28,7 +28,7 @@ func printAppString() {
 |                     An opinionated Web Framework in Go                   |
 +--------------------------------------------------------------------------+
 `
-    fmt.Printf("\033[1;32m%s\033[0m", name)
+	fmt.Printf("\033[1;32m%s\033[0m", name)
 	fmt.Println()
 }
 
@@ -84,57 +84,57 @@ func installTempl() error {
 }
 
 func compileTemplates() error {
-    // get all *_templ.go files, copy to a local tmp/main.go, then compile to plugin
+	// get all *_templ.go files, copy to a local tmp/main.go, then compile to plugin
 	return exec.Command("templ", "generate").Run()
 }
 
 func getPathVar() string {
-    return fmt.Sprintf("/%s", os.Getenv("NEXUS_APP_EXECUTION_PATH"))
+	return fmt.Sprintf("/%s", os.Getenv("NEXUS_APP_EXECUTION_PATH"))
 }
 
 // reflectiveRender dynamically searches and executes the compiled
-// <arg: name>_templ.go file (e.g. todoShow_templ.go). 
+// <arg: name>_templ.go file (e.g. todoShow_templ.go).
 //
-// If the RenderArgs.RenderFunc is provided then the provide view function is 
-// called, otherwise the method is inferred from the template name using the 
+// If the RenderArgs.RenderFunc is provided then the provide view function is
+// called, otherwise the method is inferred from the template name using the
 // TemplateNameView() templ.Component {...} defintion convention (e.g. TodoShowView()...)
 func reflectiveRender(name, path string, args *RenderArgs) (templ.Component, error) {
-    if args.RenderFunc == "" {
-        // TODO: Define func name using name & path convention
-        args.RenderFunc = ""
-    }
+	if args.RenderFunc == "" {
+		// TODO: Define func name using name & path convention
+		args.RenderFunc = ""
+	}
 
-    file, err := plugin.Open(path)
-    if err != nil {
-        log.Error(fmt.Sprintf("Error loading template %s :: %s", name, err))
-        return nil, err
-    }
+	file, err := plugin.Open(path)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error loading template %s :: %s", name, err))
+		return nil, err
+	}
 
-    sym, err := file.Lookup(args.RenderFunc) 
-    if err != nil {
-        log.Error(fmt.Sprintf("Error executing function %s :: %s", args.RenderFunc, err))
-        return nil, err
-    } 
+	sym, err := file.Lookup(args.RenderFunc)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error executing function %s :: %s", args.RenderFunc, err))
+		return nil, err
+	}
 
-    if reflect.TypeOf(sym).Kind() == reflect.Func {
-        switch f := sym.(type) {
-			case *func() templ.Component:
-				// Call functions with no parameters
-                return (*f)(), nil 
-			case *func(map[string]interface{}) templ.Component :
-				// Call functions with parameters
-				return (*f)(args.Args), nil
-            default:
-                msg := fmt.Sprintf("Unsupported function definition :: %v", f)
-                log.Error(msg)
-                return nil, fmt.Errorf(msg)
-            }
-    }
-    t := reflect.TypeOf(sym).Kind().String()
-    return nil, fmt.Errorf("Invalid type definition for %s. Expected: func() Received: %s", args.RenderFunc, t) 
+	if reflect.TypeOf(sym).Kind() == reflect.Func {
+		switch f := sym.(type) {
+		case *func() templ.Component:
+			// Call functions with no parameters
+			return (*f)(), nil
+		case *func(map[string]interface{}) templ.Component:
+			// Call functions with parameters
+			return (*f)(args.Args), nil
+		default:
+			msg := fmt.Sprintf("Unsupported function definition :: %v", f)
+			log.Error(msg)
+			return nil, fmt.Errorf(msg)
+		}
+	}
+	t := reflect.TypeOf(sym).Kind().String()
+	return nil, fmt.Errorf("Invalid type definition for %s. Expected: func() Received: %s", args.RenderFunc, t)
 }
 
 func renderWithoutFunctions(path string) error {
-     
-    return nil
+
+	return nil
 }
