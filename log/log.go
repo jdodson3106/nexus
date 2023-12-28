@@ -30,18 +30,18 @@ var (
 
 func showSimpleLog(level, out string) {
 	t := time.Now().Format(time.DateTime)
-	fmt.Printf("%v %s \t- %s\n", t, level, fmt.Sprintf(Purple, out))
+	fmt.Printf("%v %s \t- %s\n", t, level, out)
 }
 func showLogStatement(level string, out string, f string, l int) {
 	wd, err := os.Getwd()
 	if err != nil {
-		showSimpleLog(level, fmt.Sprintf(Purple, out))
+		showSimpleLog(level, out)
 	}
 
 	t := time.Now().Format(time.DateTime)
 	dirs := strings.Split(f, wd)
 	loc := strings.Split(dirs[len(dirs)-1], "/")
-	fmt.Printf("%v %s [ %s (line: %d) ] - %s\n", t, level, loc[len(loc)-1], l, out)
+	fmt.Printf("%v %s [ %s (line: %d) ] - %s\n", t, level, fmt.Sprintf(Purple, loc[len(loc)-1]), l, out)
 }
 
 func Info(out string) {

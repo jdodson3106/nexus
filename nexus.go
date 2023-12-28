@@ -24,7 +24,13 @@ const (
 	DEF_APP_NAME = "app"
 )
 
+// Handler the stub of a handler method that should be passed in any Nexus route
 type Handler func(ctx *Context) error
+
+type RenderArgs struct {
+	Context     map[string]interface{}
+	RenderFuncs []string
+}
 
 type TemplateEngine struct {
 	// todo: determine what is necessary to build this
@@ -37,9 +43,27 @@ type Context struct {
 	ctx      context.Context
 }
 
-func (ctx *Context) Render(component templ.Component) error {
-	// todo: figure out how to do this with reflection so the user can just
-	//       pass in the template name via string
+func (ctx *Context) Render(name string, args RenderArgs) error {
+	templPath := fmt.Sprintf("%s/%s._templ", viewsPath, name)
+	file, err := os.ReadFile(templPath)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error reading template \"%s\" :: %s", name, err))
+		return err
+	}
+
+	fmt.Printf("file: %v\n", file)
+
+	// body, err := ctx.Response.Write(bytes.NewBufferString(name).Bytes())
+	// if err != nil {
+	// 	log.Error(fmt.Sprintf("Error rendering template %s : %s", name, err.Error()))
+	// 	return err
+	// }
+
+	return nil
+}
+
+// RenderComponent uses the default renderer to render a Templ component
+func (ctx *Context) RenderComponent(component templ.Component) error {
 	return component.Render(ctx.ctx, ctx.Response)
 }
 
@@ -96,7 +120,6 @@ func New(c NexusConfig) (*Nexus, error) {
 		port:   c.Port,
 	}, nil
 }
-
 func (n *Nexus) Run() error {
 	err := tidy()
 	if err != nil {
