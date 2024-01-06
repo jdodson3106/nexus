@@ -12,23 +12,23 @@ type #{name}Handler struct {
 }
 
 
-func (#{objName} *#{name}Handler) Detail(ctx *Context) error {
+func (#{obj_name} *#{name}Handler) Detail(ctx *Context) error {
 
 }
 
-func (#{objName} *#{name}Handler) List(ctx *Context) error {
+func (#{obj_name} *#{name}Handler) List(ctx *Context) error {
 
 }
 
-func (#{objName} *#{name}Handler) Create(ctx *Context) error {
+func (#{obj_name} *#{name}Handler) Create(ctx *Context) error {
 
 }
 
-func (#{objName} *#{name}Handler) Update(ctx *Context) error {
+func (#{obj_name} *#{name}Handler) Update(ctx *Context) error {
 
 }
 
-func (#{objName} *#{name}Handler) Delete(ctx *Context) error {
+func (#{obj_name} *#{name}Handler) Delete(ctx *Context) error {
 
 }
 

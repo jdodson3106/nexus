@@ -51,7 +51,7 @@ func ScaffoldNewApplication(appName string) {
 	SetProperty("MODELS_ROOT", newDirectoryStructure.Models, propsFilePath)
 	SetProperty("CONF_ROOT", newDirectoryStructure.Configuration, propsFilePath)
 
-	generateBaseFiles(newDirectoryStructure, &app)
+	generateBaseFiles(&app)
 }
 
 func buildAppsDir(absPath string) {
