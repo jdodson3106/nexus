@@ -179,6 +179,7 @@ func generateBaseFiles(app *App) {
 }
 
 func setupModels(app *App) {
+	// TODO: If the user is using the default setting - auto install gorm.io
 	useDefault := bufio.NewReader(os.Stdin)
 
 	PrintWarning("Setup database model? (y/n): ")

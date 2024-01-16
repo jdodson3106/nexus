@@ -321,6 +321,7 @@ func getFieldsValue(args *GeneratorArgs) ([][]string, error) {
 }
 
 func processFields(fieldSlice [][]string) []byte {
+	// TODO: Extend this to add gorm tags to the models
 	data := make([]byte, 0)
 
 	for _, fieldSet := range fieldSlice {
@@ -352,6 +353,7 @@ func getValueForMapKey(key string, args *GeneratorArgs) (reflect.Type, any, bool
 	t := reflect.TypeOf(val)
 	return t, val, true
 }
+
 func printKeywordError(err error) {
 	PrintWarningInfo(fmt.Sprintf("error getting keyword :: %s", err))
 }
