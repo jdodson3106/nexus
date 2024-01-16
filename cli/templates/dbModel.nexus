@@ -7,5 +7,5 @@ import (
 
 type #{name} struct {
     gorm.Model 
-    #{fields}
+#{fields}
 }

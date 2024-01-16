@@ -1,9 +1,11 @@
 package nexus
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 )
 
 // templates
@@ -16,12 +18,21 @@ const (
 
 // tokens
 const (
-	leader = '#'
-	open   = '{'
-	close  = '}'
+	LEADER = '#'
+	OPEN   = '{'
+	CLOSE  = '}'
 )
 
+type GeneratorArgs struct {
+	Module    string
+	App       *App
+	ArgsMap   map[string]any
+	Generator GeneratorFunc
+}
+
 var keywords = []string{"app_name", "name", "obj_name", "fields"}
+
+type GeneratorFunc func(*GeneratorArgs)
 
 func GenerateFromTemplate(templatType string, app *App) error {
 
@@ -56,9 +67,12 @@ func genDbModel(app *App) error {
 	if err != nil {
 		return err
 	}
-
 	for _, model := range app.Models {
-		if err := parseTemplate(&template, app, model); err != nil {
+		argMap := map[string]any{
+			"model": model,
+		}
+		args := GeneratorArgs{Module: "models", App: app, ArgsMap: argMap}
+		if err := parseTemplate(&template, &args); err != nil {
 			return err
 		}
 	}
@@ -71,7 +85,8 @@ func genModel(app *App) error {
 		return err
 	}
 
-	if err := parseTemplate(&template, app); err != nil {
+	args := GeneratorArgs{Module: "models", App: app}
+	if err := parseTemplate(&template, &args); err != nil {
 		return err
 	}
 	return nil
@@ -83,7 +98,8 @@ func genHandler(app *App) error {
 		return err
 	}
 
-	if err := parseTemplate(&template, app); err != nil {
+	args := GeneratorArgs{Module: "handlers", App: app}
+	if err := parseTemplate(&template, &args); err != nil {
 		return err
 	}
 	return nil
@@ -95,7 +111,8 @@ func genView(app *App) error {
 		return err
 	}
 
-	if err := parseTemplate(&template, app); err != nil {
+	args := GeneratorArgs{Module: "views", App: app}
+	if err := parseTemplate(&template, &args); err != nil {
 		return err
 	}
 	return nil
@@ -109,36 +126,33 @@ func getFileForType(tType string) ([]byte, error) {
 	return template, nil
 }
 
-func parseTemplate(templContents *[]byte, app *App, args ...interface{}) error {
-	// ACTIONS:
-	// 1. check for interfaces to determine the types required and how to inject into the templates
-	for _, arg := range args {
-		typeName := reflect.TypeOf(arg).Name()
-		switch typeName {
-		case "Model":
-			field := reflect.ValueOf(arg).FieldByName("Name").String()
-			PrintInfo(fmt.Sprintf("creating model template for %s...\n", field))
+func parseTemplate(templContents *[]byte, args *GeneratorArgs) error {
+	for k, v := range args.ArgsMap {
+		switch k {
+		case "model":
+			modelName := reflect.ValueOf(v).FieldByName("Name").String()
+			PrintInfo(fmt.Sprintf("creating model template for %s...\n", modelName))
+
 			// handle the db data injection
-			file, err := generateDbModelFile(templContents, app, field)
+			args.ArgsMap["modelName"] = modelName
+			file, err := generateDbModelFile(templContents, args)
 			if err != nil {
 				PrintWarningInfo("Error generating Model file at location\n")
 				PrintWarningInfo(fmt.Sprintf("%s\n", file))
 				return err
 			}
 			continue
+
 		default:
-			PrintWarningInfo(fmt.Sprintf("Unknown type %s provided. Ignoring\n", typeName))
+			// PrintWarningInfo(fmt.Sprintf("Unknown type %s provided. Ignoring\n", k))
 			continue
 		}
 	}
-	// 2. get the new app dir
-	// 3. parse the template tokens and inject the appropriate information into a new file
-	// 4. save the new file into the relevant directory location
 	return nil
 }
 
-func generateDbModelFile(template *[]byte, app *App, modelName string) (string, error) {
-	var data []byte
+func generateDbModelFile(template *[]byte, args *GeneratorArgs) (string, error) {
+	data := make([]byte, 0)
 	line := make([]byte, 0)
 
 	for i := 0; i < len(*template); i++ {
@@ -157,75 +171,70 @@ func generateDbModelFile(template *[]byte, app *App, modelName string) (string, 
 		}
 
 		if b == '\n' {
-			processed := processLine(&line, app, modelName)
-			appendLineToFileData(&data, processed)
+			processed := processLine(&line, args)
+			data = append(data, processed...)
 			line = make([]byte, 0)
 		} else {
 			line = append(line, b)
 		}
-
 	}
 
-	fileName := fmt.Sprintf("%s/%s.go", app.Directory.Models, modelName)
-	printFile(data)
+	t, modelName, found := getValueForMapKey("modelName", args)
+	if !found {
+		return "", errors.New("no argument found for key 'modelName'")
+	}
+
+	if t.Name() != "string" {
+		return "", fmt.Errorf("value for key 'modelName' expected a string, got %v", t.Name())
+	}
+
+	name := strings.ToLower(reflect.ValueOf(modelName).String())
+	fileName := fmt.Sprintf("%s/%s.go", args.App.Directory.Models, name)
 	if err := os.WriteFile(fileName, data, os.ModePerm); err != nil {
 		return "", err
 	}
 	return fileName, nil
 }
 
-func printFile(data []byte) {
-	var line []byte
-	for _, d := range data {
-		if d == '\n' {
-			fmt.Printf("%s\n", string(line))
-			line = nil
-		}
-		line = append(line, d)
-	}
-}
-
-func processLine(line *[]byte, app *App, args ...string) []byte {
+func processLine(line *[]byte, args *GeneratorArgs) []byte {
 	// first make sure it's not just a blank line
 	if len(*line) == 1 && (*line)[0] == '\n' {
 		return *line
 	}
 
-	processed := make([]byte, len((*line)))
+	processed := make([]byte, 0)
 	for i := 0; i < len(*line); i++ {
 		b := (*line)[i]
-		if b == leader {
-			// verfiy there isn't a wild leader token out there
-			if (*line)[i+1] != open {
-				msg := fmt.Errorf("Invalid token found after leader %v\n", (*line)[i+1])
+		if b == LEADER {
+			// verfiy there isn't a wild LEADER token out there
+			if (*line)[i+1] != OPEN {
+				msg := fmt.Errorf("Invalid token found after LEADER %v\n", (*line)[i+1])
 				panic(msg)
 			}
 
 			// parse the keyword from start to finish
 			var kw []byte
-			start := i + 2 // jump over the leader and open tokens
-			curr := (*line)[start]
-			for curr != close {
+			cursor := i + 2 // jump over the LEADER and open tokens
+			curr := (*line)[cursor]
+			for curr != CLOSE {
 				kw = append(kw, curr)
-				start++
-				curr = (*line)[start]
+				cursor++
+				curr = (*line)[cursor]
 			}
 
 			// look up the keyword and replace it with the data
 			skw := string(kw)
-			val, ok := getValueForKeyword(skw, app)
+			val, ok := getValueForKeyword(skw, args) // TODO: handle the passed args
 			if !ok {
 				msg := fmt.Errorf("Unknown keyword #{%s} found in template\n", skw)
 				panic(msg)
 
 			}
 			// append the keyword value to the line
-			for _, v := range val {
-				processed = append(processed, v)
-			}
+			processed = append(processed, val...)
 
 			// move the cursor up to after the close token
-			i = start
+			i = cursor
 			if i <= len(*line)-1 {
 				b = (*line)[i]
 			} else {
@@ -239,23 +248,110 @@ func processLine(line *[]byte, app *App, args ...string) []byte {
 	return processed
 }
 
-func getValueForKeyword(keyword string, app *App, args ...string) ([]byte, bool) {
+func getValueForKeyword(keyword string, args *GeneratorArgs) ([]byte, bool) {
 	switch keyword {
 	case "app_name":
-		return []byte(app.Name), true
+		if args.Module == "" {
+			return nil, false
+		}
+		return []byte(args.Module), true
 	case "name":
-		return []byte(args[0]), true
+		rtn, err := getNameValue(args)
+		if err != nil {
+			printKeywordError(err)
+			return nil, false
+		}
+		return rtn, true
 	case "obj_name":
-		return []byte(args[0]), true
+		rtn, err := getObjNameValue(args)
+		if err != nil {
+			printKeywordError(err)
+			return nil, false
+		}
+		return rtn, true
 	case "fields":
-		return []byte("fiels"), true
+		fields, err := getFieldsValue(args)
+		if err != nil {
+			printKeywordError(err)
+			return nil, false
+		}
+
+		rtn := processFields(fields)
+		return rtn, true
 	default:
 		return nil, false
 	}
 }
 
-func appendLineToFileData(data *[]byte, processed []byte) {
-	for _, d := range processed {
-		*data = append(*data, d)
+func getNameValue(args *GeneratorArgs) ([]byte, error) {
+	if name := args.ArgsMap["modelName"]; name != nil {
+		val := name.(string)
+		return []byte(val), nil
 	}
+	return nil, errors.New("no model name found.")
+}
+
+func getObjNameValue(args *GeneratorArgs) ([]byte, error) {
+
+	return nil, nil
+}
+
+func getFieldsValue(args *GeneratorArgs) ([][]string, error) {
+	// get the model using reflection
+	model := reflect.ValueOf(args.ArgsMap["model"])
+	if model.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("invalid type %s. expected struct type", model.Kind().String())
+	}
+
+	var fields [][]string
+
+	for i := 0; i < model.NumField(); i++ {
+		field := model.Field(i)
+		if field.Type() == reflect.TypeOf([]ModelCol{}) {
+			cols := field.Interface().([]ModelCol)
+			for _, col := range cols {
+				fields = append(fields, []string{
+					col.Title,
+					col.DataType,
+				})
+			}
+		}
+	}
+	return fields, nil
+}
+
+func processFields(fieldSlice [][]string) []byte {
+	data := make([]byte, 0)
+
+	for _, fieldSet := range fieldSlice {
+		if len(fieldSet) != 2 {
+			PrintWarningInfo(fmt.Sprintf("invalid fields found :: %v", fieldSet))
+			continue
+		}
+		field := fmt.Sprintf("\t%s %s\n", fieldSet[0], fieldSet[1])
+		data = append(data, field...)
+	}
+
+	return data
+}
+
+func getValueForMapKey(key string, args *GeneratorArgs) (reflect.Type, any, bool) {
+	var val any
+	for k, v := range args.ArgsMap {
+		if k == key {
+			val = v
+			break
+		}
+	}
+
+	// key no exists
+	if val == nil {
+		return nil, nil, false
+	}
+
+	t := reflect.TypeOf(val)
+	return t, val, true
+}
+func printKeywordError(err error) {
+	PrintWarningInfo(fmt.Sprintf("error getting keyword :: %s", err))
 }
