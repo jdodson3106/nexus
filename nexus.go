@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/a-h/templ"
+	"github.com/jdodson3106/nexus/internal/db"
 	log "github.com/jdodson3106/nexus/log"
 	"github.com/julienschmidt/httprouter"
 )
@@ -82,6 +83,11 @@ type Nexus struct {
 	appName string
 
 	// todo: implement db abstraction
+	db *db.DB
+}
+
+func (n *Nexus) CloseDatabase() error {
+	return n.db.Close()
 }
 
 // the default setup
@@ -95,10 +101,16 @@ func NewDefault() (*Nexus, error) {
 	dir += "/views"
 	viewsPath = dir
 
+	db, err := db.NewDefaultDbConnection()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Nexus{
 		router:  httprouter.New(),
 		port:    ":3000",
 		appName: DEF_APP_NAME,
+		db:      db,
 	}, nil
 }
 
@@ -111,7 +123,9 @@ func New(c NexusConfig) (*Nexus, error) {
 		port:   c.Port,
 	}, nil
 }
+
 func (n *Nexus) Run() error {
+	defer n.db.Close()
 	err := tidy()
 	if err != nil {
 		panic(err)

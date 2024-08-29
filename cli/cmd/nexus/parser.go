@@ -30,7 +30,7 @@ type GeneratorArgs struct {
 	Generator GeneratorFunc
 }
 
-var keywords = []string{"app_name", "name", "obj_name", "fields"}
+// var keywords = []string{"app_name", "name", "obj_name", "fields"}
 
 type GeneratorFunc func(*GeneratorArgs)
 
