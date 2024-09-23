@@ -1,12 +1,10 @@
 package nexus
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
 
-	"github.com/a-h/templ"
 	"github.com/jdodson3106/nexus/internal/db"
 	log "github.com/jdodson3106/nexus/log"
 	"github.com/julienschmidt/httprouter"
@@ -33,59 +31,6 @@ type RenderArgs struct {
 	RenderFunc string
 }
 
-type TemplateEngine struct {
-	// stub for the eventual multiple templates support
-
-}
-
-type Context struct {
-	Request  *http.Request
-	Response http.ResponseWriter
-	Params   httprouter.Params
-	ctx      context.Context
-}
-
-func (ctx *Context) Render(name string, args *RenderArgs) error {
-	path := fmt.Sprintf("%s/%s_templ.go", viewsPath, name)
-	comp, err := reflectiveRender(name, path, args)
-	if err != nil {
-		return err
-	}
-	return comp.Render(ctx.ctx, ctx.Response)
-}
-
-func (ctx *Context) RenderComponent(component templ.Component) error {
-	return component.Render(ctx.ctx, ctx.Response)
-}
-
-func NewContext(w http.ResponseWriter, r *http.Request, params httprouter.Params) *Context {
-	return &Context{
-		Request:  r,
-		Response: w,
-		Params:   params,
-		ctx:      context.Background(),
-	}
-}
-
-// NexusConfig: Defines all custom config in here
-// this will be generated during the scaffolding proces
-// if the user provides flags to the cli tool
-type NexusConfig struct {
-	Port     string
-	Engine   TemplateEngine
-	ViewPath string
-}
-
-type Nexus struct {
-	// Needed to build the engine: router, db, templating,
-	router  *httprouter.Router
-	port    string
-	appName string
-
-	// todo: implement db abstraction
-	db *db.DB
-}
-
 func (n *Nexus) CloseDatabase() error {
 	return n.db.Close()
 }
@@ -108,7 +53,7 @@ func NewDefault() (*Nexus, error) {
 
 	return &Nexus{
 		router:  httprouter.New(),
-		port:    ":3000",
+		port:    ":8080",
 		appName: DEF_APP_NAME,
 		db:      db,
 	}, nil
