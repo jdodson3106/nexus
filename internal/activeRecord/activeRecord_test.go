@@ -1,4 +1,4 @@
-package activerecord
+package ar
 
 import (
 	"testing"

@@ -1,6 +1,9 @@
-package server
+package nexus
 
-import "net/http"
+import (
+	"github.com/jdodson3106/nexus/log"
+	"net/http"
+)
 
 type Response struct {
 	// The path to the view inside the view folder
@@ -8,7 +11,7 @@ type Response struct {
 	View string
 
 	// the vars that are injected into the body of the template
-	Context map[string]interface{}
+	Model map[string]interface{}
 
 	// status code for the response
 	Status int
@@ -29,4 +32,16 @@ func (r *Response) handle() (*Response, error) {
 
 	// return the response
 	return nil, nil
+}
+
+func (r *Response) HandlerFunc() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		res, err := r.handle()
+		if err != nil {
+			// TODO: Create an error handler config to inject
+			log.Error(err.Error())
+		}
+		w.WriteHeader(res.Status)
+		_, _ = w.Write([]byte(res.View))
+	}
 }

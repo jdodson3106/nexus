@@ -1,4 +1,4 @@
-package activerecord
+package ar
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ type QueryParams struct {
 }
 
 type ActiveRecord interface {
-	Get() (ActiveRecord, error)
+	Get(params ...QueryParams) (ActiveRecord, error)
 	Create(ActiveRecord) (ActiveRecord, error)
 	Update() (ActiveRecord, error)
 	Delete() error
@@ -45,7 +45,7 @@ func (b *BaseRecord) Create(record ActiveRecord) (ActiveRecord, error) {
 	return record, nil
 }
 
-func (b *BaseRecord) Get() (ActiveRecord, error) {
+func (b *BaseRecord) Get(params ...QueryParams) (ActiveRecord, error) {
 	return nil, nil
 }
 

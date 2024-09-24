@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"github.com/jdodson3106/nexus"
-	"github.com/jdodson3106/nexus/app/controllers"
 	"github.com/jdodson3106/nexus/app/models"
 )
 
@@ -20,5 +19,5 @@ func HomeRouter(r *nexus.Router) {
 
 func ModelRouter(r *nexus.Router) {
 	model := r.NewRouteGroup("/model")
-	model.GET("/create", controllers.View)
+	model.GET("/create", View)
 }

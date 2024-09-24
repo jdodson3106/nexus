@@ -7,14 +7,12 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/jdodson3106/nexus/internal/db"
-	"github.com/jdodson3106/nexus/internal/router"
 	"github.com/jdodson3106/nexus/log"
-	"github.com/julienschmidt/httprouter"
 )
 
 type Nexus struct {
 	// router  *httprouter.Router TODO: *httprouter.Router moved to internal nexus Router
-	router  router.Router
+	router  *Router
 	port    string
 	appName string
 	config  NexusConfig
@@ -26,8 +24,9 @@ type Nexus struct {
 type Context struct {
 	Request  *http.Request
 	Response http.ResponseWriter
-	Params   httprouter.Params
-	ctx      context.Context
+	Context  context.Context
+	Params   Params
+	CTX      context.Context
 }
 
 func (ctx *Context) Render(name string, args *RenderArgs) error {
@@ -36,19 +35,19 @@ func (ctx *Context) Render(name string, args *RenderArgs) error {
 	if err != nil {
 		return err
 	}
-	return comp.Render(ctx.ctx, ctx.Response)
+	return comp.Render(ctx.CTX, ctx.Response)
 }
 
 func (ctx *Context) RenderComponent(component templ.Component) error {
-	return component.Render(ctx.ctx, ctx.Response)
+	return component.Render(ctx.CTX, ctx.Response)
 }
 
-func NewContext(w http.ResponseWriter, r *http.Request, params httprouter.Params) *Context {
+func NewContext(w http.ResponseWriter, r *http.Request, params Params) *Context {
 	return &Context{
 		Request:  r,
 		Response: w,
 		Params:   params,
-		ctx:      context.Background(),
+		CTX:      context.Background(),
 	}
 }
 
@@ -64,7 +63,7 @@ type NexusConfig struct {
 type controller struct {
 	path   string
 	name   string
-	routes []router.Route
+	routes []Route
 }
 
 type controllerRegister struct {
@@ -75,9 +74,10 @@ func InitNexus() (*Nexus, error) {
 	n := &Nexus{}
 
 	// register the existing routes and controller methods (handlers)
-	n.router = router.Router{BasePath: "/"}
+	n.router = NewRouter("/")
 
 	// TODO: Call all found router methods
+	n.generateRoutes(n.router)
 
 	// parse the controller files
 	err := n.parseControllers()
@@ -95,4 +95,8 @@ func (n *Nexus) parseControllers() error {
 	// diff the hashes of each file to determine if the file needs to be reparsed
 
 	return nil
+}
+
+func (n *Nexus) generateRoutes(router *Router) {
+
 }

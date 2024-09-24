@@ -23,8 +23,8 @@ const (
 	DEF_APP_NAME = "app"
 )
 
-// Handler the stub of a handler method that should be passed in any Nexus route
-type Handler func(ctx *Context) error
+// HandlerFunc the stub of a handler method that should be passed in any Nexus route
+type HandlerFunc func(ctx *Context) error
 
 type RenderArgs struct {
 	Args       map[string]interface{}
@@ -52,7 +52,7 @@ func NewDefault() (*Nexus, error) {
 	}
 
 	return &Nexus{
-		router:  httprouter.New(),
+		router:  NewRouter(""),
 		port:    ":8080",
 		appName: DEF_APP_NAME,
 		db:      db,
@@ -64,7 +64,7 @@ func New(c NexusConfig) (*Nexus, error) {
 	// WIP
 	viewsPath = c.ViewPath
 	return &Nexus{
-		router: httprouter.New(),
+		router: NewRouter(""),
 		port:   c.Port,
 	}, nil
 }
@@ -88,32 +88,37 @@ func (n *Nexus) Run() error {
 
 	printAppString()
 	log.Info(fmt.Sprintf("Nexus server started at http://localhost%s", n.port))
-	return http.ListenAndServe(n.port, n.router)
+	return http.ListenAndServe(n.port, n.router.httpRouter)
 }
 
-func (n *Nexus) GET(path string, handler Handler) {
+func (n *Nexus) GET(path string, handler HandlerFunc) {
 	n.createHttpHandle(GET, path, handler)
 }
 
-func (n *Nexus) POST(path string, handler Handler) {
+func (n *Nexus) POST(path string, handler HandlerFunc) {
 	n.createHttpHandle(POST, path, handler)
 }
 
-func (n *Nexus) PUT(path string, handler Handler) {
+func (n *Nexus) PUT(path string, handler HandlerFunc) {
 	n.createHttpHandle(PUT, path, handler)
 }
 
-func (n *Nexus) PATCH(path string, handler Handler) {
+func (n *Nexus) PATCH(path string, handler HandlerFunc) {
 	n.createHttpHandle(PATCH, path, handler)
 }
 
-func (n *Nexus) DELETE(path string, handler Handler) {
+func (n *Nexus) DELETE(path string, handler HandlerFunc) {
 	n.createHttpHandle(DELETE, path, handler)
 }
 
-func (n *Nexus) createHttpHandle(method string, path string, handler Handler) {
+// TODO: Git rid of all this and use updates in the new Router
+func (n *Nexus) createHttpHandle(method string, path string, handler HandlerFunc) {
 	handle := func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		ctx := NewContext(w, r, p)
+		var newParams Params
+		for _, oldParam := range p {
+			newParams = append(newParams, Param{Key: oldParam.Key, Value: oldParam.Value})
+		}
+		ctx := NewContext(w, r, newParams)
 		if err := handler(ctx); err != nil {
 			// todo: figure out handling errors in the handler calls;
 			//       need a default mechanism to handle these gracefully

@@ -1,11 +1,11 @@
 package main
 
-import (
-	"github.com/jdodson3106/nexus"
-)
+import "github.com/jdodson3106/nexus"
 
 func main() {
+
 	nx, err := nexus.InitNexus()
+
 	if err != nil {
 		panic(err)
 	}
