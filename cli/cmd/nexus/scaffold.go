@@ -27,8 +27,9 @@ type Model struct {
 }
 
 type App struct {
-	Name   string
-	Models []Model
+	Name      string
+	Directory NewDirectory
+	Models    []Model
 }
 
 func ScaffoldNewApplication(appName string) {
@@ -43,13 +44,14 @@ func ScaffoldNewApplication(appName string) {
 	}
 
 	newDirectoryStructure := scaffoldApplicationStructure(appName)
+	app.Directory = newDirectoryStructure
 	SetProperty("APP_ROOT", newDirectoryStructure.Root, propsFilePath)
 	SetProperty("VIEWS_ROOT", newDirectoryStructure.Views, propsFilePath)
 	SetProperty("HANDLERS_ROOT", newDirectoryStructure.Handlers, propsFilePath)
 	SetProperty("MODELS_ROOT", newDirectoryStructure.Models, propsFilePath)
 	SetProperty("CONF_ROOT", newDirectoryStructure.Configuration, propsFilePath)
 
-	generateBaseFiles(newDirectoryStructure, &app)
+	generateBaseFiles(&app)
 }
 
 func buildAppsDir(absPath string) {
@@ -165,7 +167,7 @@ func scaffoldApplicationStructure(appName string) NewDirectory {
 	return newDirStruct
 }
 
-func generateBaseFiles(directory NewDirectory, app *App) {
+func generateBaseFiles(app *App) {
 	PrintInfo("generating initial application files...\n")
 
 	// 1: Setup Models
@@ -177,6 +179,7 @@ func generateBaseFiles(directory NewDirectory, app *App) {
 }
 
 func setupModels(app *App) {
+	// TODO: If the user is using the default setting - auto install gorm.io
 	useDefault := bufio.NewReader(os.Stdin)
 
 	PrintWarning("Setup database model? (y/n): ")
@@ -225,6 +228,12 @@ func setupModels(app *App) {
 
 		// add the models to the app object
 		app.Models = models
+
+		// geneate the db model files from templates
+		if genErr := GenerateFromTemplate(DB_MODEL, app); genErr != nil {
+			// todo: handle this error mo' betta
+			panic(genErr)
+		}
 	}
 
 }
