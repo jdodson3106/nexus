@@ -2,8 +2,12 @@ package nexus
 
 import (
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"plugin"
 	"reflect"
 
@@ -88,10 +92,6 @@ func compileTemplates() error {
 	return exec.Command("templ", "generate").Run()
 }
 
-func getPathVar() string {
-	return fmt.Sprintf("/%s", os.Getenv("NEXUS_APP_EXECUTION_PATH"))
-}
-
 // reflectiveRender dynamically searches and executes the compiled
 // <arg: name>_templ.go file (e.g. todoShow_templ.go).
 //
@@ -137,4 +137,94 @@ func reflectiveRender(name, path string, args *RenderArgs) (templ.Component, err
 func renderWithoutFunctions(path string) error {
 
 	return nil
+}
+
+func generatePlugin(path string) (string, error) {
+	if buildDirPath == "" {
+		buildDirPath = getRelativeAppPath() + "out"
+	}
+	err := os.MkdirAll(buildDirPath, os.ModePerm)
+	if err != nil {
+		return "", fmt.Errorf("failed to create build directory: %v", err)
+	}
+	baseName := filepath.Base(path)
+	pluginName := baseName[:len(baseName)-len(filepath.Ext(baseName))] + ".so"
+
+	// Construct the output path
+	outputPath := filepath.Join(buildDirPath, pluginName)
+
+	// Build the command
+	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o", outputPath, path)
+	fmt.Println(cmd)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Execute the command
+	err = cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("failed to build plugin: %v", err)
+	}
+
+	fmt.Printf("Plugin built successfully: %s\n", outputPath)
+	return outputPath, nil
+}
+
+func reflectiveRouteLoader(path string, router *Router) error {
+	routeFile := fmt.Sprintf("%s/routes.go", path)
+	funcs, err := parseFunctionsFromRouter(routeFile)
+	if err != nil {
+		return err
+	}
+
+	pluginFile, err := generatePlugin(routeFile)
+	if err != nil {
+		return err
+	}
+
+	file, err := plugin.Open(pluginFile)
+	if err != nil {
+		log.Error(fmt.Sprintf("error loading router file %s :: %s", pluginFile, err))
+		return err
+	}
+	for _, fn := range funcs {
+		sym, err := file.Lookup(fn)
+		if err != nil {
+			log.Error(fmt.Sprintf("error executing function %s :: %s", fn, err))
+			return err
+		}
+
+		if reflect.TypeOf(sym).Kind() == reflect.Func {
+			switch f := sym.(type) {
+			case *func():
+				msg := fmt.Sprintf("error calling router func: %s. all routers functions expect a *nexus.Router parameter", fn)
+				return fmt.Errorf(msg)
+			case *func(router *Router):
+				(*f)(router)
+			default:
+				msg := fmt.Sprintf("Unsupported function definition :: %v", f)
+				log.Error(msg)
+				return fmt.Errorf(msg)
+			}
+		}
+	}
+	return nil
+}
+
+func parseFunctionsFromRouter(path string) ([]string, error) {
+	fset := token.NewFileSet()
+
+	node, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+	if err != nil {
+		return nil, err
+	}
+
+	var functions []string
+	ast.Inspect(node, func(n ast.Node) bool {
+		if funcDecl, ok := n.(*ast.FuncDecl); ok {
+			functions = append(functions, funcDecl.Name.Name)
+		}
+		return true
+	})
+	return functions, nil
 }

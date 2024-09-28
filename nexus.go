@@ -7,10 +7,7 @@ import (
 	"github.com/jdodson3106/nexus/internal/db"
 	"github.com/jdodson3106/nexus/log"
 	"net/http"
-	"os"
 )
-
-var viewsPath string
 
 const (
 	GET     = "GET"
@@ -74,7 +71,16 @@ func NewContext(w http.ResponseWriter, r *http.Request, params Params) *Context 
 type NexusConfig struct {
 	Port          string
 	ViewPath      string
-	controllerDir string
+	ControllerDir string
+	ModelsDir     string
+}
+
+func DefaultNexusConfig() NexusConfig {
+	return NexusConfig{
+		Port:          ":8080",
+		ViewPath:      getRelativeViewsPath(),
+		ControllerDir: getRelativeControllerPath(),
+	}
 }
 
 type controller struct {
@@ -88,26 +94,15 @@ type controllerRegister struct {
 }
 
 func InitNexus() (*Nexus, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		dir = fmt.Sprintf("./%s", DEF_APP_NAME)
-	}
-	p := getPathVar()
-	dir += p
-	dir += "/views"
-	viewsPath = dir
-
 	// create the new nexus instance
-	n := &Nexus{port: ":8080", appName: DEF_APP_NAME}
+	conf := DefaultNexusConfig()
+	n := &Nexus{port: ":8080", appName: DEF_APP_NAME, config: conf}
 
 	// register the existing routes and controller methods (handlers)
 	n.router = NewRouter("/")
 
-	// TODO: Call all found router methods
-	n.generateRoutes(n.router)
-
 	// parse the controller files
-	err = n.parseControllers()
+	err := n.parseControllers()
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
@@ -142,6 +137,13 @@ func (n *Nexus) Run() error {
 		panic(err)
 	}
 
+	// TODO: Call all found router methods
+	n.generateRoutes(n.router)
+
+	for _, r := range n.router.routes {
+		log.Info(fmt.Sprintf("Registering route: [%s] - %s", r.Method, r.Path))
+	}
+
 	printAppString()
 	log.Info(fmt.Sprintf("Nexus server started at http://localhost%s", n.port))
 	return http.ListenAndServe(n.port, n.router.httpRouter)
@@ -160,5 +162,8 @@ func (n *Nexus) parseControllers() error {
 }
 
 func (n *Nexus) generateRoutes(router *Router) {
-
+	path := getRelativeControllerPath()
+	if err := reflectiveRouteLoader(path, router); err != nil {
+		log.Error(err.Error())
+	}
 }

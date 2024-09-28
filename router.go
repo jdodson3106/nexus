@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	ar "github.com/jdodson3106/nexus/internal/activeRecord"
+	"github.com/jdodson3106/nexus/log"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
+	"reflect"
 	"text/template"
 )
 
@@ -35,6 +37,14 @@ func NewRouter(path string, routes ...Route) *Router {
 }
 
 func (r *Router) NewModelCrudRoutes(model ar.ActiveRecord) {
+	t := reflect.ValueOf(model)
+	if t.Kind() != reflect.Ptr {
+		t = t.Elem()
+	}
+	name := t.Type().Name()
+	if err := r.NewCrudRoutes(name, model); err != nil {
+		log.Error(err.Error())
+	}
 }
 
 func (r *Router) NewRouteGroup(prefix string) *Router {
@@ -79,16 +89,16 @@ func (r *Router) NewCrudRoutes(modelName string, models ...ar.ActiveRecord) erro
 		},
 	}
 
-	ok, existingPaths := r.checkForExistingRoutes(cruds...)
-	if !ok {
-		return errors.New(fmt.Sprintf("routes alread exist. cannot create :: %+v", existingPaths))
+	for _, crud := range cruds {
+		if err := r.registerNewCrudRoute(crud); err != nil {
+			return err
+		}
 	}
 
-	r.routes = append(r.routes, cruds...)
 	return nil
 }
 
-func (r *Router) NewRoute(rt Route) error {
+func (r *Router) newRoute(rt Route) error {
 	ok, _ := r.checkForExistingRoutes(rt)
 	if !ok {
 		return errors.New(fmt.Sprintf("routes alread exist. cannot create :: %+v", rt))
@@ -97,11 +107,28 @@ func (r *Router) NewRoute(rt Route) error {
 	return nil
 }
 
+func (r *Router) registerNewCrudRoute(rt Route) error {
+	if err := r.newRoute(rt); err != nil {
+		return err
+	}
+	switch rt.Method {
+	case http.MethodGet:
+		r.GET(rt.Path, rt.Handler)
+	case http.MethodPost:
+		r.POST(rt.Path, rt.Handler)
+	case http.MethodPut:
+		r.PUT(rt.Path, rt.Handler)
+	case http.MethodDelete:
+		r.DELETE(rt.Path, rt.Handler)
+	}
+
+	return nil
+}
+
 func (r *Router) GET(path string, handler func(r *Request) *Response) {
-	// register the new route
-	err := r.NewRoute(Route{Path: path, Handler: handler})
-	if err != nil {
-		// TODO: How to handle this?
+	if err := r.newRoute(Route{Path: path, Handler: handler}); err != nil {
+		log.Error(fmt.Sprintf("a route at %s already exists. will use that definition instead.", path))
+		return
 	}
 
 	// create the internal handler func
@@ -124,7 +151,7 @@ func (r *Router) GET(path string, handler func(r *Request) *Response) {
 		res := handler(nexReq)
 		wr.WriteHeader(res.Status)
 
-		// TODO: write the view parser to parse html files
+		// TODO: write the view generator to parse html files
 		// 		 for now just use the built-ins
 		temp, err := template.ParseFiles(res.View)
 		if err != nil {

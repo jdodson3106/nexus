@@ -12,6 +12,7 @@ func HomeRouter(r *nexus.Router) {
 	Update - [POST: /blog/:id]
 	Get by ID - [GET: /blog/:id]
 	Delete - [GET: /blog/delete/:id]
+	/Users/justindodson/Documents/Development/GoLang/nexus/app/controllers/routes.go
 	*/
 	r.NewModelCrudRoutes(&models.Blog{})
 
